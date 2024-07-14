@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>OpenLayers Map Example</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.20.1/ol.css"
+    />
+    <style>
+      #map {
+        height: 600px; /* Define a specific height */
+        width: 100%; /* Ensure full width */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.20.1/ol.js"></script>
+    <script>
+      var map = new ol.Map({
+        target: "map",
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.OSM(),
+          }),
+        ],
+        view: new ol.View({
+          center: ol.proj.fromLonLat([-0.09, 51.505]),
+          zoom: 13,
+        }),
+      });
+
+      var markers = {};
+
+      function addMarker(lat, lon, busline) {
+        if (!markers[busline]) {
+          markers[busline] = [];
+        }
+
+        markers[busline].forEach((marker) => map.removeLayer(marker));
+
+        var marker = new ol.layer.Vector({
+          source: new ol.source.Vector({
+            features: [
+              new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+              }),
+            ],
+          }),
+          style: new ol.style.Style({
+            image: new ol.style.Circle({
+              radius: 10,
+              fill: new ol.style.Fill({ color: getMarkerColor(busline) }),
+              stroke: new ol.style.Stroke({
+                color: "white",
+                width: 2,
+              }),
+            }),
+          }),
+        });
+
+        map.addLayer(marker);
+        markers[busline].push(marker);
+      }
+
+      function getMarkerColor(busline) {
+        switch (busline) {
+          case "00001":
+            return "red";
+          case "00002":
+            return "blue";
+          case "00003":
+            return "green";
+          default:
+            return "black"; // Default color if busline doesn't match known cases
+        }
+      }
+
+      var source = new EventSource("/topic/testBusData");
+      source.addEventListener(
+        "message",
+        function (e) {
+          var obj = JSON.parse(e.data);
+          addMarker(obj.latitude, obj.longitude, obj.busline);
+        },
+        false
+      );
+    </script>
+  </body>
+</html>
